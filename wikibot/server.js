@@ -16,29 +16,33 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.post('/incoming', async (req, res) => {
   try {
     const twiml = new MessagingResponse();
-    if (
-      req.body.Body.toLowerCase().trim() != "hi" &&
+    if (req.body.Body.toLowerCase().trim() != "hi" &&
       req.body.Body.toLowerCase().trim() != "hello" &&
       req.body.Body.toLowerCase().trim() != "test" &&
       req.body.Body.toLowerCase().trim() != "help") {
       request(
         'https://api.duckduckgo.com/?skip_disambig=1&format=json&pretty=1&q=' +
         req.body.Body, function (error, response, body) {
-          body = JSON.parse(body)
-          console.log('body:', body["Abstract"]);
+          try {
+            if (error) throw error;
+            body = JSON.parse(body)
+            console.log('body:', body["Abstract"]);
 
-          if (body["Abstract"] == "") {
-            body["Abstract"] = body["RelatedTopics"][0]["Text"]
+            if (body["Abstract"] == "") {
+              body["Abstract"] = body["RelatedTopics"][0]["Text"]
+            }
+
+            var msg = twiml.message(`*` + body["Heading"] + `* ` + body["Abstract"]);
+            res.writeHead(200, { 'Content-Type': 'text/xml' });
+            res.end(twiml.toString());
+          } catch (e) {
+            console.log(e);
+            var msg = twiml.message(`*` + "Unknown" + `*` );
+            res.writeHead(200, { 'Content-Type': 'text/xml' });
+            res.end(twiml.toString());
           }
-
-          var msg = twiml.message(`*` + body["Heading"] + `*
-
-`   + body["Abstract"]);
-          res.writeHead(200, { 'Content-Type': 'text/xml' });
-          res.end(twiml.toString());
         });
-    }
-    else {
+    } else {
       var msg = twiml.message(`*Hey 👋*
 
           I am a bot which summarizes WikiPedia pages to help you find quick information, right within WhatsApp.
