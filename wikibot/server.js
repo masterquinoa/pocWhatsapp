@@ -5,14 +5,13 @@ const bodyParser = require('body-parser');
 
 
 const accountSid = process.env.SID;
-const authToken = process.env.SID;
+const authToken = process.env.KEY;
 const client = require('twilio')(accountSid, authToken);
 const MessagingResponse = require('twilio').twiml.MessagingResponse;
 
 app.use(express.static('public'));
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-
 
 app.post('/incoming', (req, res) => {
   const twiml = new MessagingResponse();
@@ -53,10 +52,27 @@ app.post('/incoming', (req, res) => {
 app.post('/check', function (req, res) {
   console.log(req.body.Body)
 });
+
 app.get('/', function (request, response) {
   response.sendFile(__dirname + '/views/index.html');
 });
 
+app.post('/sendwhatsapp', async (req, res) => {
+  try {
+    let message = await client.messages.create(
+      {
+        from: req.body.from,
+        body: req.body.text,
+        to: req.body.to
+      }
+    );
+    console.log(message.sid);
+    res.send('OK')
+  } catch (e) {
+    console.log(e);
+    res.send('ERROR sending whatsapp')
+  }
+});
 
 var listener = app.listen(process.env.PORT, function () {
   console.log('Your app is listening on port ' + listener.address().port);
